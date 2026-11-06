@@ -1,0 +1,9 @@
+{
+  "name": "gallery-shell",
+  "description": "The Photo Gallery's page shell: the still-frame top bar, the album rail with counts and storage, and the page column.",
+  "requires": [],
+  "inject": ["gallery", "router"],
+  "provides": ["shell"],
+  "dependencies": { "@deepseek-ai/cordis": "4.0.4" },
+  "mount": "a row `- id: gallery-shell` / `name: gallery-shell` after the gallery row and before the page row in blend.yaml; a page injects `shell`"
+}

@@ -1,0 +1,9 @@
+{
+  "name": "gallery",
+  "description": "The Photo Gallery's domain: albums and photographs with favourites, saved as JSON in the app's data home. The page plugin injects it.",
+  "requires": [],
+  "inject": ["appInstance"],
+  "provides": ["gallery"],
+  "dependencies": { "@deepseek-ai/cordis": "4.0.4" },
+  "mount": "a row `- id: gallery` / `name: gallery` before the page rows in blend.yaml; a page injects the `gallery` service"
+}

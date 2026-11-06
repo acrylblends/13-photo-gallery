@@ -1,0 +1,36 @@
+apiVersion: blends.acryl.dev/v1alpha1
+kind: Blueprint
+metadata:
+  id: acrylblends.photo-gallery
+  name: "Photo Gallery"
+  version: 0.1.0
+  category: media
+  description: "An editorial photo archive: albums, a masonry grid, favourites, an offline lightbox and an upload form."
+  license: MIT
+  visibility: public
+spec:
+  runtime: cordis
+  parameters:
+    hostname: { type: string, default: 127.0.0.1 }
+  rows:
+    - id: router
+      name: acryl-router
+    - id: home
+      name: home
+    # The domain: albums and photographs with favourites, saved as JSON in the app's data home.
+    - id: gallery
+      name: gallery
+    # The shell: the still-frame top bar, the album rail and storage.
+    - id: gallery-shell
+      name: gallery-shell
+    # The library, album view, lightbox and upload form.
+    - id: library
+      name: library
+    - id: extensions
+      name: extensions
+    - id: server
+      name: acryl-node-server
+      config:
+        hostname: "{{parameters.hostname}}"
+    - id: acryl-door
+      name: acryl-door

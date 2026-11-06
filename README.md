@@ -1,17 +1,22 @@
 # Photo Gallery
 
-Browse photographs by album and category, upload assets, and inspect full-resolution images in a lightbox.
+An editorial archive: albums, a masonry grid, favourites, an offline lightbox and an upload form. The previews are gradients, so it works without a network.
 
-An ACRYL Blends blueprint for the **Media** category (`acrylblends.photo-gallery`, category 13 of 100).
-
-Status: designed, being built. `design/spec.md` is the specification and `design/mockup.html` the mockup (open it in a browser). The app itself,
-composed from Cordis plugins (one `plugins/<feature>/` folder and one `blend.yaml` row per feature), lands here when it passes review.
-
-When it is ready you will start it with:
+## Run it
 
 ```sh
-npm create acrylblends@latest my-app -- --from acrylblends.photo-gallery
-cd my-app && npm install && npm run dev
+npm install
+npm start
 ```
 
-Listed on https://acrylblends.github.io/blends and https://acryl.dev/blends.
+Open the address it prints. `npm test` runs the tests (node:test; no network, no key).
+
+## What to ask the chat next
+
+- Add a photograph to the Travel album with a blue preview.
+- Favourite a portrait and open the Favourites collection.
+- Open a photo and step to the next frame in its album.
+
+## Screenshot
+
+![Photo Gallery](docs/screenshot.png)
