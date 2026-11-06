@@ -1,15 +1,21 @@
 /**
- * The page shell every page plugin shares (`ctx.shell`): the top bar entries pages register, links under the mount prefix, the page wrapper and the
- * notice of a redirect. A page plugin registers its entry with `ctx.shell.nav(...)` inside `ctx.effect`, so the entry leaves with the plugin, mounts
- * its routes at `ctx.shell.prefix` and writes every link with `ctx.shell.href(path)`.
+ * The page shell every page plugin shares (`ctx.shell`): the entries pages register in the top bar and the album rail, links under the mount prefix,
+ * the page wrapper and the notice of a redirect. A page plugin registers its entries with `ctx.shell.nav(...)` inside `ctx.effect`, so an entry leaves
+ * with its plugin; every page mounts its routes at `ctx.shell.prefix` and writes every link with `ctx.shell.href(path)`.
  */
 export interface NavItem {
-  /** The page plugin's name. */
+  /** The page plugin's name for the entry. */
   readonly id: string
+  /** Where it sits: the top bar or the album rail. */
+  readonly area: 'top' | 'side'
   readonly label: string
-  /** A short glyph shown before the label. */
-  readonly icon: string
-  /** The page's path under the prefix (`/prompts`). */
+  /** The rail's section heading (`LIBRARY`, `SMART COLLECTIONS`); adjacent entries share one heading. */
+  readonly group?: string
+  /** A glyph in the rail's thumbnail slot (`✦`). */
+  readonly glyph?: string
+  /** The data URI drawn in the rail's thumbnail slot. */
+  readonly image?: string
+  /** The page's path under the prefix (`/albums/landscapes`). */
   readonly path: string
   /** Where it sits: lower first. */
   readonly order: number
@@ -18,18 +24,20 @@ export interface NavItem {
 }
 
 export interface PageInput {
-  /** The nav item id to highlight. */
+  /** The rail entry id to highlight (`all`, `album:<id>`, `favourites`). */
   readonly active?: string
+  /** The top bar entry id to highlight (`library`, `albums`, `shared`, `recent`). */
+  readonly navActive?: string
   /** The browser tab's title (the app name is added). */
   readonly title: string
+  /** An extra body class for a page that changes the shell's behaviour (the lightbox's arrow keys). */
+  readonly bodyClass?: string
   /** The breadcrumb segments (optional for a top bar that does not show them). */
   readonly crumbs?: readonly string[]
   /** The page's content. */
   readonly main: string
   /** Extra HTML at the end of the body: a page's own `<script>`. */
   readonly scripts?: string
-  /** The right meta in the top bar (default: `LOCAL HISTORY SAVED`). */
-  readonly meta?: string
 }
 
 /** A line after a form was sent: `?ok=` or `?error=` on the redirect. */
@@ -47,7 +55,7 @@ export interface Shell {
   /** The notice of a request's `?ok=` / `?error=` / `?warn=` query, as HTML (empty when there is none). */
   notice(url: string): string
   back(value: unknown, fallback: string): string
-  /** A path with a notice for the page it lands on: `url('/prompts', { kind: 'ok', text: 'Saved.' })`. */
+  /** A path with a notice for the page it lands on: `url('/photos/1', { kind: 'ok', text: 'Saved.' })`. */
   url(path: string, notice?: Notice): string
 }
 
@@ -63,7 +71,7 @@ export function noticeQuery(notice: Notice): string {
   return `?${notice.kind}=${encodeURIComponent(notice.text)}`
 }
 
-/** The page's toast, its copy buttons and the client-side filter of a list. */
+/** The page's toast and the lightbox keys (Escape, arrows), shared by every page. */
 export const CLIENT_SCRIPT = `<script>
 (function () {
   var toastTimer;
@@ -75,39 +83,23 @@ export const CLIENT_SCRIPT = `<script>
     clearTimeout(toastTimer);
     toastTimer = setTimeout(function () { element.classList.remove('show'); }, 2200);
   }
-  window.promptLabToast = toast;
-  function copy(text, message) {
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(text).then(function () { toast(message); }, function () { toast('Copy failed'); });
-      return;
-    }
-    var area = document.createElement('textarea');
-    area.value = text;
-    document.body.append(area);
-    area.select();
-    document.execCommand('copy');
-    area.remove();
-    toast(message);
-  }
-  document.querySelectorAll('[data-copy]').forEach(function (button) {
-    button.addEventListener('click', function () {
-      var source = document.getElementById(button.dataset.copy);
-      if (source) copy(source.textContent, 'Copied to the clipboard');
-    });
-  });
+  window.stillframeToast = toast;
   document.querySelectorAll('[data-toast]').forEach(function (button) {
     button.addEventListener('click', function () { toast(button.dataset.toast); });
   });
-  document.querySelectorAll('[data-search]').forEach(function (input) {
-    input.addEventListener('input', function () {
-      var query = input.value.toLowerCase();
-      var scope = document.querySelector(input.dataset.search);
-      if (!scope) return;
-      scope.querySelectorAll('[data-row]').forEach(function (row) {
-        row.style.display = row.textContent.toLowerCase().includes(query) ? '' : 'none';
-      });
-    });
+  document.querySelectorAll('[data-submit]').forEach(function (element) {
+    element.addEventListener('change', function () { element.form && element.form.requestSubmit(); });
   });
+  if (document.body.classList.contains('lightbox-open')) {
+    document.addEventListener('keydown', function (event) {
+      var prev = document.querySelector('[data-lightbox-prev]');
+      var next = document.querySelector('[data-lightbox-next]');
+      var close = document.querySelector('[data-lightbox-close]');
+      if (event.key === 'ArrowLeft' && prev) location.href = prev.getAttribute('href');
+      if (event.key === 'ArrowRight' && next) location.href = next.getAttribute('href');
+      if (event.key === 'Escape' && close) location.href = close.getAttribute('href');
+    });
+  }
 }());
 </script>`
 
@@ -115,9 +107,9 @@ export interface ShellLook {
   readonly appTitle: string
   readonly css: string
   /** The top bar's HTML. */
-  topbar(nav: readonly NavItem[], crumbs: readonly string[], href: (path: string) => string, meta: string, active: string | undefined): string
+  topbar(items: readonly NavItem[], navActive: string | undefined, href: (path: string) => string): string
   /** The album rail. */
-  rail(nav: readonly NavItem[], active: string | undefined, href: (path: string) => string): string
+  rail(items: readonly NavItem[], active: string | undefined, href: (path: string) => string): string
   /** The class of the wrapper around the page's main HTML. */
   readonly bodyClass: string
 }
@@ -159,11 +151,7 @@ export function createShell(prefix: string, look: ShellLook): Shell {
       }
       return ''
     },
-    page({ active, title, crumbs, main, scripts, meta }) {
-      const segments = crumbs ?? []
-      const trail = segments
-        .map((crumb, index) => (index === segments.length - 1 ? `<b>${escapeHtml(crumb)}</b>` : `${escapeHtml(crumb)} <span>/</span>`))
-        .join(' ')
+    page({ active, navActive, title, bodyClass, main, scripts }) {
       return `<!doctype html>
 <html lang="en">
 <head>
@@ -172,9 +160,9 @@ export function createShell(prefix: string, look: ShellLook): Shell {
 <title>${escapeHtml(title)} · ${escapeHtml(look.appTitle)}</title>
 <style>${look.css}</style>
 </head>
-<body class="${look.bodyClass}">
-${look.topbar(navItems(), crumbs ?? [], href, meta ?? 'LOCAL HISTORY SAVED', active)}
-<div class="layout">${look.rail(navItems(), active, href)}<main class="main">${main}</main></div>
+<body class="${look.bodyClass}${bodyClass === undefined ? '' : ` ${bodyClass}`}">
+${look.topbar(navItems().filter((item) => item.area === 'top'), navActive, href)}
+<div class="layout">${look.rail(navItems().filter((item) => item.area === 'side'), active, href)}<main class="main">${main}</main></div>
 <div id="toast" class="toast" aria-live="polite"></div>
 ${scripts ?? CLIENT_SCRIPT}
 </body>
