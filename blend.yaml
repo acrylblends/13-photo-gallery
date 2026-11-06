@@ -7,7 +7,7 @@ metadata:
   name: "Photo Gallery"
   version: 0.1.0
   category: media
-  description: "An editorial photo archive: four albums, 4,281 generated photographs, a masonry grid, favourites, sharing, an offline lightbox and an upload form."
+  description: "A charcoal editorial photo archive: 4,281 seeded photographs in four albums, a masonry library with search and paging, favourites, sharing, an offline lightbox and a validated upload form."
   license: MIT
   visibility: public
 spec:

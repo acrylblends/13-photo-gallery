@@ -8,7 +8,7 @@
     "id": "acrylblends.photo-gallery",
     "kind": "Blueprint",
     "version": "0.1.0",
-    "digest": "9598e982b6561caf42f35372764db1c05d52618660a40f31092bf759ac7ab6d0"
+    "digest": "a0acfbc2948d9332e0a316773cf1bbccea793eb2f378c39369d244adb9b17951"
   },
   "parameters": {
     "hostname": "127.0.0.1"
